@@ -208,6 +208,20 @@ class Client : Player {
 		outBuffer ~= identification.CreateData();
 	}
 
+	private bool ValidateUsername(string username) {
+		if (username.length < 2 || username.length > 16) return false;
+
+		for (int i = 0; i < username.length; i++) {
+			char current = username[i];
+			if (current == '_' || current == '.') continue;
+			if (current >= '0' && current <= '9') continue;
+			if ((current >= 'a' && current <= 'z') || (current >= 'A' && current <= 'Z')) continue;
+			return false;
+		}
+
+		return true;
+	}
+
 	void Update(Server server) {
 		auto time = Clock.currTime().toUnixTime();
 
@@ -233,6 +247,11 @@ class Client : Player {
 
 					packet.FromData(inBuffer);
 					inBuffer = inBuffer[packet.GetSize() .. $];
+
+					if (!ValidateUsername(packet.username)) {
+						server.Kick(this, "Bad username");
+						return;
+					}
 
 					auto correctMppass = md5Of(
 						server.salt ~ packet.username
@@ -306,7 +325,6 @@ class Client : Player {
 
 					if (muted) {
 						SendMessage("&eYou are muted");
-						return;
 					}
 
 					server.SendGlobalMessage(
